@@ -8,8 +8,10 @@ class EmbeddedSystemDebugger : public QMainWindow
 	Q_OBJECT
 
 public:
-	EmbeddedSystemDebugger(QWidget *parent = Q_NULLPTR);
+	EmbeddedSystemDebugger(QWidget *parent = Q_NULLPTR, QRect const *screenSize = Q_NULLPTR);
 
 private:
-	Ui::EmbeddedSystemDebuggerClass ui;
+	//Ui::EmbeddedSystemDebuggerClass ui; Not using creator for now
+	// Sets the application's main Window Size
+	void setMainWindowSize(QRect const* screenSize);
 };
