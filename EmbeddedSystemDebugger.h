@@ -26,4 +26,12 @@ private:
 	// GUI setup functions
 	void setMainWindowSize(QRect const* screenSize);
 	void initWidgets();
+	void initConnections();
+
+	// Helper Functions
+	void consoleWrite(const QString&);
+
+private slots:
+	void getEnteredCommand();
+	void clearConsole();
 };

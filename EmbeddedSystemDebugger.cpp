@@ -16,6 +16,7 @@ EmbeddedSystemDebugger::EmbeddedSystemDebugger(QWidget *parent, QRect const *scr
 
 	// Initialize all Widgets
 	initWidgets();
+	initConnections();
 }
 
 // Sets the application's main Window Size
@@ -61,10 +62,38 @@ void EmbeddedSystemDebugger::initWidgets()	{
 
 	// Configure clear button to clear console
 	clear_button = new QPushButton(tr("Clear"));
-	clear_button->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum); // This policy enforces the size to be no larger than the size provided by sizeHint().
+	clear_button->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum); // This policy enforces the widget size to be no larger than the size provided by sizeHint().
 	vb_layout->addWidget(clear_button);
 
 	// The following sets the layout & reparents widgets from vb_layout to centralWidget
 	centralWidget->setLayout(vb_layout);
 	this->setCentralWidget(centralWidget); // required
+}
+
+// Connects Widgets to corresponding Slots which provide widget behavior/functionality
+void EmbeddedSystemDebugger::initConnections()		{
+	// Syntax: connect(widget, Signal, this, Slot)
+	connect(input_ledit, &QLineEdit::returnPressed, this, &EmbeddedSystemDebugger::getEnteredCommand);
+	connect(enter_button, &QPushButton::released, this, &EmbeddedSystemDebugger::getEnteredCommand);
+	connect(clear_button, &QPushButton::released, this, &EmbeddedSystemDebugger::clearConsole);
+}
+
+// Writes msg to console widget
+void EmbeddedSystemDebugger::consoleWrite(const QString& msg) {
+	console_tedit->append(msg);
+}
+
+// Slot: Retrieves entered command from input terminal and writes it to console. Clears input terminal after retrieval
+void EmbeddedSystemDebugger::getEnteredCommand()	{
+	QString command = input_ledit->text();
+	input_ledit->clear();
+	if (command.isEmpty()) // Ignore empty input
+		return;
+	consoleWrite(command);
+	// TODO: Process command
+}
+
+// Slot: Clears the console
+void EmbeddedSystemDebugger::clearConsole()	{
+	console_tedit->clear();
 }
