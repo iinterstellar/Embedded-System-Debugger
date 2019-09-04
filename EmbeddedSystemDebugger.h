@@ -1,7 +1,10 @@
 #pragma once
 
 #include <QtWidgets/QMainWindow>
-#include "ui_EmbeddedSystemDebugger.h"
+#include <QtWidgets/QPushButton>
+#include <QtWidgets/QLineEdit>
+#include <QtWidgets/QTextEdit>
+//#include "ui_EmbeddedSystemDebugger.h"
 
 class EmbeddedSystemDebugger : public QMainWindow
 {
@@ -12,6 +15,15 @@ public:
 
 private:
 	//Ui::EmbeddedSystemDebuggerClass ui; Not using creator for now
-	// Sets the application's main Window Size
+
+	// Widgets
+	QWidget* centralWidget;
+	QPushButton* enter_button;
+	QPushButton* clear_button;
+	QLineEdit* input_ledit;
+	QTextEdit* console_tedit;
+
+	// GUI setup functions
 	void setMainWindowSize(QRect const* screenSize);
+	void initWidgets();
 };
