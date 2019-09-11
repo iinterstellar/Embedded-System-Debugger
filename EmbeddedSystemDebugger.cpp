@@ -1,6 +1,9 @@
 #include "EmbeddedSystemDebugger.h"
 #include <QGridLayout>
 #include <QGroupBox>
+#include <sstream>
+#include <algorithm>
+//#include <iterator>
 
 #define	MAINWINDOW_DEFAULT_WIDTH				2500
 #define	MAINWINDOW_DEFAULT_HEIGHT			1700
@@ -20,7 +23,8 @@ EmbeddedSystemDebugger::EmbeddedSystemDebugger(QWidget *parent, QRect const *scr
 }
 
 // Sets the application's main Window Size
-void EmbeddedSystemDebugger::setMainWindowSize(QRect const *screenSize) {
+void EmbeddedSystemDebugger::setMainWindowSize(QRect const *screenSize)
+{
 	// If screen dimensions are available, set window size to MAINWINDOW_SCREENPERCENTAGE % of screen
 	int width, height;
 	if (screenSize != Q_NULLPTR) {
@@ -37,7 +41,8 @@ void EmbeddedSystemDebugger::setMainWindowSize(QRect const *screenSize) {
 }
 
 // Creates and configures layout on all widgets on the main application window
-void EmbeddedSystemDebugger::initWidgets()	{
+void EmbeddedSystemDebugger::initWidgets()
+{
 	// Must create and define central widget. All other widgets will be children of centralWidget
 	centralWidget = new QWidget(this);
 
@@ -71,7 +76,8 @@ void EmbeddedSystemDebugger::initWidgets()	{
 }
 
 // Connects Widgets to corresponding Slots which provide widget behavior/functionality
-void EmbeddedSystemDebugger::initConnections()		{
+void EmbeddedSystemDebugger::initConnections()
+{
 	// Syntax: connect(widget, Signal, this, Slot)
 	connect(input_ledit, &QLineEdit::returnPressed, this, &EmbeddedSystemDebugger::getEnteredCommand);
 	connect(enter_button, &QPushButton::released, this, &EmbeddedSystemDebugger::getEnteredCommand);
@@ -79,21 +85,81 @@ void EmbeddedSystemDebugger::initConnections()		{
 }
 
 // Writes msg to console widget
-void EmbeddedSystemDebugger::consoleWrite(const QString& msg) {
+void EmbeddedSystemDebugger::consoleWrite(const QString& msg)
+{
 	console_tedit->append(msg);
 }
 
+// Splits command into tokens, delimited by spaces. Thanks stackoverflow.
+bool EmbeddedSystemDebugger::tokenizeCommand(std::vector<std::string> &tokens, const std::string &command)
+{
+	std::istringstream iss(command);
+	std::copy(std::istream_iterator<std::string>(iss),
+		std::istream_iterator<std::string>(),
+		std::back_inserter(tokens));
+	if (tokens.size() > 0)
+		return true;
+	else
+		return false;
+}
+
+void EmbeddedSystemDebugger::getSerialPorts(const std::string &arg)
+{
+	if (!arg.empty())
+		consoleWrite(QString::fromStdString("getSerialPorts, arg: " + arg));
+	else
+		consoleWrite(QString::fromStdString("getSerialPorts, no arg"));
+}
+
+void EmbeddedSystemDebugger::testSerialPorts(const std::string &arg)
+{
+	if (!arg.empty())
+		consoleWrite(QString::fromStdString("testSerialPorts, arg: " + arg));
+	else
+		consoleWrite(QString::fromStdString("testSerialPorts, no arg"));
+}
+
 // Slot: Retrieves entered command from input terminal and writes it to console. Clears input terminal after retrieval
-void EmbeddedSystemDebugger::getEnteredCommand()	{
-	QString command = input_ledit->text();
+void EmbeddedSystemDebugger::getEnteredCommand()	
+{
+	const QString command = input_ledit->text();
 	input_ledit->clear();
 	if (command.isEmpty()) // Ignore empty input
 		return;
 	consoleWrite(command);
-	// TODO: Process command
+	
+	// Check to see if command was a EmbeddedSystemDebugger Debug command
+	std::vector<std::string> tokens;
+	if (!tokenizeCommand(tokens, command.toStdString())) {
+		QString error_msg = "Error: Unable to tokenize command" + command;
+		consoleWrite(error_msg);
+		return;
+	}
+	if (tokens.at(0) == debug_token) {
+		std::unordered_map<std::string, _debugCallbackFunction>::const_iterator index = debug_functions.find(tokens.at(1));
+		std::string test = "test";
+		if (index != debug_functions.end()) {// if found, invoke the corresponding debug function
+			if (tokens.size() == 2)
+				(this->*(index->second)) (""); // this syntax took forever -__-
+			else if (tokens.size() == 3)
+				(this->*(index->second)) (tokens.at(2));
+			else
+				consoleWrite(QString::fromStdString("Error: Too many arguments for " + index->first));
+		}
+		else {
+			if (tokens.size() > 1)
+				consoleWrite(QString::fromStdString("Error: Command '" + command.toStdString() + "' not recognized"));
+			else
+				consoleWrite(QString::fromStdString("Error: No debug command entered"));
+		}
+	}
+	else {
+		consoleWrite(QString::fromStdString("TODO: Send this command to embedded device IF connected! Else error!"));
+	}
 }
 
 // Slot: Clears the console
-void EmbeddedSystemDebugger::clearConsole()	{
+void EmbeddedSystemDebugger::clearConsole()
+{
 	console_tedit->clear();
 }

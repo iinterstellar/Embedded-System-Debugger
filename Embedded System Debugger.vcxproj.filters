@@ -7,6 +7,9 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="serialPortScannerThread.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Resource Files">
@@ -32,6 +35,9 @@
   </ItemGroup>
   <ItemGroup>
     <QtMoc Include="EmbeddedSystemDebugger.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="serialPortScannerThread.h">
       <Filter>Header Files</Filter>
     </QtMoc>
   </ItemGroup>
