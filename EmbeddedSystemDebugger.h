@@ -16,6 +16,7 @@ class EmbeddedSystemDebugger : public QMainWindow
 
 public:
 	EmbeddedSystemDebugger(QWidget *parent = Q_NULLPTR, QRect const *screenSize = Q_NULLPTR);
+	~EmbeddedSystemDebugger();
 
 private:
 	//Ui::EmbeddedSystemDebuggerClass ui; Not using creator for now
@@ -35,8 +36,9 @@ private:
 	// Functions
 	void consoleWrite(const QString&);
 	bool tokenizeCommand(std::vector<std::string>&,const std::string&);
-	void getSerialPorts(const std::string &arg = "");
-	void testSerialPorts(const std::string &arg = "");
+	void requestSerialPorts(const std::string& arg = "");
+	void testRequestSerialPorts(const std::string &arg = "");
+	void requestConfig(const std::string &arg = "");
 
 	// Private Data Structures
 	const std::string debug_token = "_esd";
@@ -46,10 +48,16 @@ private:
 	};
 	typedef void (EmbeddedSystemDebugger:: * _debugCallbackFunction) (const std::string&);
 	std::unordered_map<std::string, _debugCallbackFunction> const debug_functions = {
-		{ "get_serialPorts", &EmbeddedSystemDebugger::getSerialPorts },
-		{ "test_serialPorts", &EmbeddedSystemDebugger::testSerialPorts }
+		{ "get_serialPorts", &EmbeddedSystemDebugger::requestSerialPorts },
+		{ "test_serialPorts", &EmbeddedSystemDebugger::testRequestSerialPorts },
+		{ "get_config", &EmbeddedSystemDebugger::requestConfig }
 	};
+	SerialPortScannerThread device_manager;
 
+signals:
+	void getSerialPortsRequest();
+	void testGetSerialPortsRequest(unsigned int);
+	void getConfigRequest();
 
 private slots:
 	void getEnteredCommand();

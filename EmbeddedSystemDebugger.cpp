@@ -4,22 +4,38 @@
 #include <sstream>
 #include <algorithm>
 //#include <iterator>
+#include "TestConfig.h"
 
 #define	MAINWINDOW_DEFAULT_WIDTH				2500
 #define	MAINWINDOW_DEFAULT_HEIGHT			1700
 #define	MAINWINDOW_SCREENPERCENTAGE			0.8
 
-EmbeddedSystemDebugger::EmbeddedSystemDebugger(QWidget *parent, QRect const *screenSize)
+const unsigned int test_iteration_max = 100;
+
+EmbeddedSystemDebugger::EmbeddedSystemDebugger(QWidget* parent, QRect const* screenSize)
 	: QMainWindow(parent), centralWidget(Q_NULLPTR), enter_button(Q_NULLPTR), clear_button(Q_NULLPTR), input_ledit(Q_NULLPTR), console_tedit(Q_NULLPTR)
 {
-	//ui.setupUi(this); Not using Creator for now
+	//ui.setupUi(this); Not using Qt Designer for now
 
 	// Setup main Window size
 	setMainWindowSize(screenSize);
 
 	// Initialize all Widgets
 	initWidgets();
+
+	// Initialize all Signal/Slot Connections
 	initConnections();
+
+	// Kick off all continuosly running threads
+	std::unique_ptr<Config> selected_config ( new TestConfig() );
+	device_manager.setConfig(std::move(selected_config));	// TODO: Implement real config class. Also std::make_unique<Config>(new TestConfig()) does NOT work as arg
+	device_manager.start(QThread::IdlePriority);
+}
+
+EmbeddedSystemDebugger::~EmbeddedSystemDebugger()
+{
+	// Stop execution of all running threads
+	device_manager.abortThread();
 }
 
 // Sets the application's main Window Size
@@ -78,16 +94,17 @@ void EmbeddedSystemDebugger::initWidgets()
 // Connects Widgets to corresponding Slots which provide widget behavior/functionality
 void EmbeddedSystemDebugger::initConnections()
 {
-	// Syntax: connect(widget, Signal, this, Slot)
+	/* Syntax: connect(widget, Signal, this, Slot)	*/
+	// GUI
 	connect(input_ledit, &QLineEdit::returnPressed, this, &EmbeddedSystemDebugger::getEnteredCommand);
 	connect(enter_button, &QPushButton::released, this, &EmbeddedSystemDebugger::getEnteredCommand);
 	connect(clear_button, &QPushButton::released, this, &EmbeddedSystemDebugger::clearConsole);
-}
 
-// Writes msg to console widget
-void EmbeddedSystemDebugger::consoleWrite(const QString& msg)
-{
-	console_tedit->append(msg);
+	// Threads
+	connect(this, &EmbeddedSystemDebugger::getSerialPortsRequest, &device_manager, &SerialPortScannerThread::getSerialPorts, Qt::QueuedConnection);
+	connect(this, &EmbeddedSystemDebugger::testGetSerialPortsRequest, &device_manager, &SerialPortScannerThread::testGetSerialPorts, Qt::QueuedConnection);
+	connect(this, &EmbeddedSystemDebugger::getConfigRequest, &device_manager, &SerialPortScannerThread::getConfig, Qt::QueuedConnection);
+	connect(&device_manager, &SerialPortScannerThread::writeToConsole, this, &EmbeddedSystemDebugger::consoleWrite, Qt::QueuedConnection);
 }
 
 // Splits command into tokens, delimited by spaces. Thanks stackoverflow.
@@ -103,20 +120,30 @@ bool EmbeddedSystemDebugger::tokenizeCommand(std::vector<std::string> &tokens, c
 		return false;
 }
 
-void EmbeddedSystemDebugger::getSerialPorts(const std::string &arg)
+// Sends a request to device_manager thread to retrieve serial devices via QT signal. Argument not used.
+void EmbeddedSystemDebugger::requestSerialPorts(const std::string &arg)
 {
-	if (!arg.empty())
-		consoleWrite(QString::fromStdString("getSerialPorts, arg: " + arg));
-	else
-		consoleWrite(QString::fromStdString("getSerialPorts, no arg"));
+	//if (!arg.empty())
+	emit getSerialPortsRequest();
 }
 
-void EmbeddedSystemDebugger::testSerialPorts(const std::string &arg)
+// Sends request device_manager thread to test get_serialPorts function. Argument sets total test iterations
+void EmbeddedSystemDebugger::testRequestSerialPorts(const std::string &arg)
 {
-	if (!arg.empty())
-		consoleWrite(QString::fromStdString("testSerialPorts, arg: " + arg));
+	if (!arg.empty()) {
+		unsigned int repititions = std::stoul(arg);
+		if (repititions < test_iteration_max)
+			emit testGetSerialPortsRequest(repititions);
+		else
+			consoleWrite(QString::fromStdString("Error: testSerialPorts argument must be less than ") + QString::number(test_iteration_max));
+	}
 	else
-		consoleWrite(QString::fromStdString("testSerialPorts, no arg"));
+		emit testGetSerialPortsRequest(1);
+}
+
+// Sends request to device_manager thread to return running Config
+void EmbeddedSystemDebugger::requestConfig(const std::string& arg) {
+	emit getConfigRequest();
 }
 
 // Slot: Retrieves entered command from input terminal and writes it to console. Clears input terminal after retrieval
@@ -135,9 +162,10 @@ void EmbeddedSystemDebugger::getEnteredCommand()
 		consoleWrite(error_msg);
 		return;
 	}
-	if (tokens.at(0) == debug_token) {
+	if (tokens.at(0) == "clear")
+		clearConsole();
+	else if (tokens.at(0) == debug_token) {
 		std::unordered_map<std::string, _debugCallbackFunction>::const_iterator index = debug_functions.find(tokens.at(1));
-		std::string test = "test";
 		if (index != debug_functions.end()) {// if found, invoke the corresponding debug function
 			if (tokens.size() == 2)
 				(this->*(index->second)) (""); // this syntax took forever -__-
@@ -156,6 +184,12 @@ void EmbeddedSystemDebugger::getEnteredCommand()
 	else {
 		consoleWrite(QString::fromStdString("TODO: Send this command to embedded device IF connected! Else error!"));
 	}
+}
+
+// Writes msg to console widget
+void EmbeddedSystemDebugger::consoleWrite(const QString& msg)
+{
+	console_tedit->append(msg);
 }
 
 // Slot: Clears the console
