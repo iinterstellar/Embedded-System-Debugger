@@ -4,7 +4,7 @@
 
 // Constructor. Note: Object owner must kick off thread execution
 SerialPortScannerThread::SerialPortScannerThread(QObject* parent)
-	: QThread(parent), restart(false), abort_thread(false), keep_scanning(false), get_serialports_request(false), run_test(false), test_iterations(0), device_found(false)
+	: restart(false), keep_scanning(false), get_serialports_request(false), run_test(false), test_iterations(0), device_found(false)
 {}
 
 SerialPortScannerThread::~SerialPortScannerThread()
@@ -13,26 +13,6 @@ SerialPortScannerThread::~SerialPortScannerThread()
 	abort_thread = true;
 	mutex.unlock();
 	wait();
-}
-
-// Sets selected config
-void SerialPortScannerThread::setConfig(std::unique_ptr<Config> selected_config) 
-{
-	mutex.lock();
-	debugger_config = std::move(selected_config);
-	mutex.unlock();
-}
-
-// Sets flag to abort thread execution
-void SerialPortScannerThread::abortThread()
-{
-	mutex.lock();
-	abort_thread = true;
-	mutex.unlock();
-	if (!isRunning())
-		start(IdlePriority);
-	else
-		condition.wakeOne();
 }
 
 // Slot: Sets flag to retrieve serial devices info and sends them to GUI thread for outputting

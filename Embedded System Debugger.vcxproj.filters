@@ -43,6 +43,9 @@
     <QtMoc Include="serialPortScannerThread.h">
       <Filter>Header Files</Filter>
     </QtMoc>
+    <QtMoc Include="ESDThread.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
   </ItemGroup>
   <ItemGroup>
     <QtUic Include="EmbeddedSystemDebugger.ui">

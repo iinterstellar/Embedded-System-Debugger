@@ -27,8 +27,8 @@ EmbeddedSystemDebugger::EmbeddedSystemDebugger(QWidget* parent, QRect const* scr
 	initConnections();
 
 	// Kick off all continuosly running threads
-	std::unique_ptr<Config> selected_config ( new TestConfig() );
-	device_manager.setConfig(std::move(selected_config));	// TODO: Implement real config class. Also std::make_unique<Config>(new TestConfig()) does NOT work as arg
+	std::shared_ptr<const Config> selected_config ( new TestConfig() );
+	device_manager.setConfig(selected_config);	// TODO: Implement real config class. Also std::make_unique<Config>(new TestConfig()) does NOT work as arg
 	device_manager.start(QThread::IdlePriority);
 }
 
